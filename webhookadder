@@ -1,0 +1,84 @@
+import requests
+import json
+
+
+BOT_TOKEN = "YOUR BOT!!!"
+SERVER_ID = "YOUR SERVER ID!!!"
+TARGET_USER_ID = "the user id you wanna send the webhook urls to"
+
+
+BASE_URL = "https://discord.com/api/v10"
+
+headers = {
+    "Authorization": f"Bot {BOT_TOKEN}",
+    "Content-Type": "application/json"
+}
+
+def get_channels(server_id):
+    """Fetch all channels in the server."""
+    url = f"{BASE_URL}/guilds/{server_id}/channels"
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Failed to fetch channels: {response.status_code} - {response.text}")
+        return []
+
+def create_webhook(channel_id, webhook_name):
+    """Create a webhook in a specific channel."""
+    url = f"{BASE_URL}/channels/{channel_id}/webhooks"
+    data = {
+        "name": webhook_name
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Failed to create webhook in channel {channel_id}: {response.status_code} - {response.text}")
+        return None
+
+def send_dm(user_id, message):
+    """Send a direct message to a user."""
+
+    url = f"{BASE_URL}/users/@me/channels"
+    data = {
+        "recipient_id": user_id
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 200:
+        dm_channel_id = response.json()["id"]
+
+        url = f"{BASE_URL}/channels/{dm_channel_id}/messages"
+        data = {
+            "content": message
+        }
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code == 200:
+            print(f"Message sent to user {user_id}.")
+        else:
+            print(f"Failed to send message: {response.status_code} - {response.text}")
+    else:
+        print(f"Failed to create DM channel: {response.status_code} - {response.text}")
+
+def main():
+
+    channels = get_channels(SERVER_ID)
+    if not channels:
+        print("No channels found or failed to fetch channels.")
+        return
+
+
+    for channel in channels:
+        channel_id = channel["id"]
+        channel_name = channel["name"]
+        if channel["type"] == 0:  
+            print(f"Creating webhook in channel: {channel_name} (ID: {channel_id})")
+            webhook = create_webhook(channel_id, "My Webhook")
+            if webhook:
+                webhook_url = webhook["url"]
+                print(f"Webhook created: {webhook_url}")
+             
+                send_dm(TARGET_USER_ID, f"Webhook created in channel {channel_name}: {webhook_url}")
+
+if __name__ == "__main__":
+    main()
