@@ -1,0 +1,31 @@
+@echo off
+setlocal enabledelayedexpansion
+
+set /p num_webhooks=Enter the number of webhooks you want to use: 
+
+for /L %%i in (1,1,%num_webhooks%) do (
+    set /p webhook_url_%%i=Enter webhook URL for webhook %%i: 
+)
+
+set /p channel_name=Enter the new name for the channel: 
+
+set /p message=Enter the message to send: 
+
+set /p count=Enter the number of times to send the message: 
+
+set /p delay=Enter the delay between messages (in seconds): 
+
+for /L %%i in (1,1,%count%) do (
+    echo Sending message %%i of %count%...
+    for /L %%j in (1,1,%num_webhooks%) do (
+        echo Using webhook %%j...
+        :: Send the message
+        curl -H "Content-Type: application/json" -d "{\"content\":\"%message%\"}" !webhook_url_%%j!
+        :: Rename the channel
+        curl -X PATCH -H "Content-Type: application/json" -d "{\"name\":\"%channel_name%\"}" !webhook_url_%%j!
+    )
+    timeout /t %delay% /nobreak >nul
+)
+
+echo All messages sent and channels renamed!
+pause
